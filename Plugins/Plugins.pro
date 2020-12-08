@@ -16,9 +16,8 @@ SUBDIRS += \
     Printing \
     SqlEnterpriseFormatter \
     ConfigMigration \
-    ScriptingTcl \
+#    ScriptingTcl \
     DbAndroid \
     DbSqliteCipher \
     DbSqliteWx \
     MultiEditorImage
-
