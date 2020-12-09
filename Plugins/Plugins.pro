@@ -20,4 +20,5 @@ SUBDIRS += \
     DbAndroid \
     DbSqliteCipher \
     DbSqliteWx \
-    MultiEditorImage
+    MultiEditorImage \
+    MultiEditorVarints

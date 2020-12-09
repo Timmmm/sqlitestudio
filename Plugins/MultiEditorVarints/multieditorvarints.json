@@ -1,0 +1,7 @@
+{
+    "type":         "MultiEditorWidgetPlugin",
+    "title":        "Varint / VLQ viewer",
+    "description":  "Allows viewing BLOBs that contain varint or VLQ encoded integers",
+    "version":      10000,
+    "author":       "Tim Hutt"
+}
