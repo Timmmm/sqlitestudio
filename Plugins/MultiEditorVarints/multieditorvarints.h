@@ -27,9 +27,11 @@ class MultiEditorVarints : public MultiEditorWidget
     private:
         QByteArray varintsData;
         QPlainTextEdit* textEdit = nullptr;
+        QAction* rleAction = nullptr;
+        QAction* zigzagAction = nullptr;
 
     private slots:
-        // void toggleSigned();
+        void updateText();
 };
 
 class MULTIEDITORVARINTS_EXPORT MultiEditorVarintsPlugin : public GenericPlugin, public MultiEditorWidgetPlugin

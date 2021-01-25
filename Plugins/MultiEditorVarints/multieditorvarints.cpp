@@ -6,26 +6,68 @@
 #include <QAction>
 #include <QMenu>
 #include <QDebug>
+#include <QToolBar>
+
+class RleDecoder {
+    enum class State {
+        Instruction,
+        Copy,
+        Repeat,
+    } state = State::Instruction;
+
+    // Number of values remaining for a Copy, or repeats remaining for a Repeat.
+    std::uint64_t n = 0;
+
+public:
+    void operator()(std::uint64_t d, const std::function<void(std::uint64_t)>& processValue) {
+        switch (state) {
+            case State::Instruction: {
+                bool is_copy = (d & 1) != 0;
+                std::uint64_t length = d >> 1;
+                n = length;
+                if (is_copy) {
+                    state = State::Copy;
+                } else {
+                    state = State::Repeat;
+                }
+                break;
+            }
+            case State::Copy: {
+                processValue(d);
+                if (n > 1) {
+                    --n;
+                } else {
+                    state = State::Instruction;
+                }
+                break;
+            }
+            case State::Repeat: {
+                for (std::uint64_t i = 0; i < n; ++i) {
+                    processValue(d);
+                }
+                state = State::Instruction;
+                break;
+            }
+        }
+    }
+};
 
 namespace
 {
-    QString decodeVarints(const QByteArray& ba, bool zigzag)
+    std::int64_t decodeZigzag(std::uint64_t x) {
+        return (x >> 1) ^ (-(x & 1));
+    }
+
+    void decodeVarints(const QByteArray& ba, const std::function<void(std::uint64_t)>& processValue)
     {
-        QString text;
-        text.reserve(ba.size());
         std::uint64_t value = 0;
         for (auto byte : ba) {
             value = value << 7 | (byte & 0x7f);
             if ((byte & 0x80) != 0) {
-                if (zigzag) {
-                    value = (value >> 1) ^ (-(value & 1));
-                }
-                text += " ";
-                text += QString::number(value);
+                processValue(value);
                 value = 0;
             }
         }
-        return text;
     }
 }
 
@@ -34,25 +76,56 @@ namespace
 MultiEditorVarints::MultiEditorVarints(QWidget* parent) : MultiEditorWidget(parent)
 {
     setLayout(new QVBoxLayout());
+
+    QToolBar* tb = new QToolBar();
+    rleAction = tb->addAction(tr("RLE"), this, SLOT(updateText()));
+    zigzagAction = tb->addAction(tr("Zigzag"), this, SLOT(updateText()));
+    rleAction->setCheckable(true);
+    zigzagAction->setCheckable(true);
+    layout()->addWidget(tb);
+
     textEdit = new QPlainTextEdit();
     textEdit->setReadOnly(true); // Modification not supported yet.
     layout()->addWidget(textEdit);
-
-    // QToolBar* tb = new QToolBar();
-    // tb->setOrientation(Qt::Vertical);
-    // loadAction = tb->addAction(ICONS.OPEN_FILE, tr("Load from file"), this, SLOT(openFile()));
-    // tb->addAction(ICONS.SAVE_FILE, tr("Store in a file"), this, SLOT(saveFile()));
-    // zoomInAct = tb->addAction(ICONS.ZOOM_IN, tr("Zoom in by 25%"), this, SLOT(zoomIn()));
-    // zoomOutAct = tb->addAction(ICONS.ZOOM_OUT, tr("Zoom out by 25%"), this, SLOT(zoomOut()));
-    // tb->addAction(ICONS.ZOOM_RESET, tr("Reset zoom"), this, SLOT(resetZoom()));
-    // layout()->addWidget(tb);
 }
 
 void MultiEditorVarints::setValue(const QVariant &value)
 {
     varintsData = value.toByteArray();
+    updateText();
+}
 
-    textEdit->setPlainText(decodeVarints(varintsData, false));
+void MultiEditorVarints::updateText() {
+    QString text;
+    text.reserve(varintsData.size());
+
+    bool rle = rleAction->isChecked();
+    bool zigzag = zigzagAction->isChecked();
+
+    if (rle) {
+        RleDecoder rleDecoder;
+        decodeVarints(varintsData, [&](std::uint64_t rleVal) {
+            rleDecoder(rleVal, [&](std::uint64_t val) {
+                text += " ";
+                if (zigzag) {
+                    text += QString::number(decodeZigzag(val));
+                } else {
+                    text += QString::number(val);
+                }
+            });
+        });
+    } else {
+        decodeVarints(varintsData, [&](std::uint64_t val) {
+            text += " ";
+            if (zigzag) {
+                text += QString::number(decodeZigzag(val));
+            } else {
+                text += QString::number(val);
+            }
+        });
+    }
+
+    textEdit->setPlainText(text);
 }
 
 QVariant MultiEditorVarints::getValue()
@@ -64,13 +137,6 @@ void MultiEditorVarints::setReadOnly(bool value)
 {
     UNUSED(value);
 }
-
-// TODO
-// QToolBar* MultiEditorVarints::getToolBar(int toolbar) const
-// {
-//     UNUSED(toolbar);
-//     return nullptr;
-// }
 
 QList<QWidget*> MultiEditorVarints::getNoScrollWidgets()
 {
