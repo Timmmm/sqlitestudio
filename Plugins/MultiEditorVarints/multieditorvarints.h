@@ -9,6 +9,8 @@
 #include <QVariant>
 
 class QPlainTextEdit;
+class QCheckBox;
+class QLabel;
 
 class MultiEditorVarints : public MultiEditorWidget
 {
@@ -27,8 +29,9 @@ class MultiEditorVarints : public MultiEditorWidget
     private:
         QByteArray varintsData;
         QPlainTextEdit* textEdit = nullptr;
-        QAction* rleAction = nullptr;
-        QAction* zigzagAction = nullptr;
+        QCheckBox* rleCheckbox = nullptr;
+        QCheckBox* zigzagCheckbox = nullptr;
+        QLabel* arrayLengthLabel = nullptr;
 
     private slots:
         void updateText();

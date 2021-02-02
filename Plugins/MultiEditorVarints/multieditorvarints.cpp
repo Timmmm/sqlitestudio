@@ -2,11 +2,13 @@
 #include "common/unused.h"
 #include <QPlainTextEdit>
 #include <QVariant>
+#include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QAction>
 #include <QMenu>
 #include <QDebug>
-#include <QToolBar>
+#include <QCheckBox>
+#include <QLabel>
 
 class RleDecoder {
     enum class State {
@@ -71,22 +73,31 @@ namespace
     }
 }
 
-
-
 MultiEditorVarints::MultiEditorVarints(QWidget* parent) : MultiEditorWidget(parent)
 {
-    setLayout(new QVBoxLayout());
+    QVBoxLayout* layout = new QVBoxLayout();
 
-    QToolBar* tb = new QToolBar();
-    rleAction = tb->addAction(tr("RLE"), this, SLOT(updateText()));
-    zigzagAction = tb->addAction(tr("Zigzag"), this, SLOT(updateText()));
-    rleAction->setCheckable(true);
-    zigzagAction->setCheckable(true);
-    layout()->addWidget(tb);
+    QHBoxLayout* tb = new QHBoxLayout();
+    tb->setContentsMargins(8, 8, 8, 8);
+    tb->setSpacing(16);
+    rleCheckbox = new QCheckBox(tr("RLE"));
+    zigzagCheckbox = new QCheckBox(tr("Zigzag"));
+    tb->addWidget(rleCheckbox);
+    tb->addWidget(zigzagCheckbox);
+    arrayLengthLabel = new QLabel();
+    tb->addWidget(arrayLengthLabel);
+    tb->addStretch();
+
+    connect(rleCheckbox, SIGNAL(stateChanged(int)), this, SLOT(updateText()));
+    connect(zigzagCheckbox, SIGNAL(stateChanged(int)), this, SLOT(updateText()));
+
+    layout->addLayout(tb);
 
     textEdit = new QPlainTextEdit();
     textEdit->setReadOnly(true); // Modification not supported yet.
-    layout()->addWidget(textEdit);
+    layout->addWidget(textEdit);
+
+    setLayout(layout);
 }
 
 void MultiEditorVarints::setValue(const QVariant &value)
@@ -99,8 +110,10 @@ void MultiEditorVarints::updateText() {
     QString text;
     text.reserve(varintsData.size());
 
-    bool rle = rleAction->isChecked();
-    bool zigzag = zigzagAction->isChecked();
+    bool rle = rleCheckbox->isChecked();
+    bool zigzag = zigzagCheckbox->isChecked();
+
+    int length = 0;
 
     if (rle) {
         RleDecoder rleDecoder;
@@ -112,6 +125,7 @@ void MultiEditorVarints::updateText() {
                 } else {
                     text += QString::number(val);
                 }
+                ++length;
             });
         });
     } else {
@@ -122,8 +136,11 @@ void MultiEditorVarints::updateText() {
             } else {
                 text += QString::number(val);
             }
+            ++length;
         });
     }
+
+    arrayLengthLabel->setText("Length: " + QString::number(length));
 
     textEdit->setPlainText(text);
 }
