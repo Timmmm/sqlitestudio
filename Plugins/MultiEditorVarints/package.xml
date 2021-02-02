@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<Package>
+    <DisplayName>Varint viewer plugin</DisplayName>
+    <Description>Plugin that introduces varint viewer tab for cell editor and form view.</Description>
+    <Version>%VERSION%</Version>
+    <ReleaseDate>%DATE%</ReleaseDate>
+    <Name>pl.com.salsoft.sqlitestudio.plugins.multieditorvarint</Name>
+    <Dependencies>pl.com.salsoft.sqlitestudio.plugins</Dependencies>
+    <Default>true</Default>
+</Package>
